@@ -31,7 +31,7 @@
 29. [iOS 中级面试题](http://mrpeak.cn/ios/2016/01/07/push)
 30. [试答卓同学的 iOS 面试题 - IOS - 伯乐在线](http://ios.jobbole.com/85720/?utm_source=blog.jobbole.com&utm_medium=relatedPosts)
 31. [iOS面试题收集 - 简书](https://www.jianshu.com/p/553d707e4a0a)
-32.[ iOS 性能监控方案 Wedjat（ 下篇）](https://mp.weixin.qq.com/s?__biz=MzI1MTE2NTE1Ng==&mid=2649516402&idx=1&sn=6b294858aea8710faded49e429e0ae79&chksm=f1efe9f9c69860efca1d72ca85aa34583a7a3c8fd2595c6b8dbae5c925893e52c61fe56eb276#rd)
+32. [ iOS 性能监控方案 Wedjat（ 下篇）](https://mp.weixin.qq.com/s?__biz=MzI1MTE2NTE1Ng==&mid=2649516402&idx=1&sn=6b294858aea8710faded49e429e0ae79&chksm=f1efe9f9c69860efca1d72ca85aa34583a7a3c8fd2595c6b8dbae5c925893e52c61fe56eb276#rd)
 33. [iOS 面试必看，最全梳理 - IOS - 伯乐在线](http://ios.jobbole.com/84392/?utm_source=blog.jobbole.com&utm_medium=relatedPosts)
 34. [SegmentFault 技术周刊 Vol.27 - Git 学习宝典：程序员走江湖必备 - SegmentFault 社区周刊 - SegmentFault](https://segmentfault.com/a/1190000009893041)
 35. [深刻理解移动端优化之离屏渲染](https://www.jianshu.com/p/d74398c50fe1)
