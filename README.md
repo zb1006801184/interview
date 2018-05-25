@@ -41,3 +41,6 @@
 39. [block内存分配](http://ibloodline.com/articles/2016/01/20/memory2-block.html)
 40. [28 问题答案](https://blog.csdn.net/hanangellove/article/details/45033453)
 41. [iOS适配方案](http://www.hudongdong.com/ios/487.html)
+42. [阿里数据iOS端启动速度优化的一些经验](https://www.jianshu.com/p/f29b59f4c2b9)
+43. [URL Schemes 使用详解](https://sspai.com/post/31500#09)
+44. [认识URL Schemes](https://www.jianshu.com/p/eed01a661186)
