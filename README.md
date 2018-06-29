@@ -46,3 +46,5 @@
 44. [认识URL Schemes](https://www.jianshu.com/p/eed01a661186)
 45. [多线程的认识](https://www.jianshu.com/p/7649fad15cdb)
 46. [常用API](https://www.cnblogs.com/zhangxiaoyong/p/8205024.html)
+47. [三种block详解](http://www.cnblogs.com/zfyouxi/p/4237261.html)
+48. [runtime详解](https://www.jianshu.com/p/6ebda3cd8052)
