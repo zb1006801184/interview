@@ -112,6 +112,39 @@ dispatch_resume(timer);
 
 通过添加 Observer 监听 RunLoop 的状态变化，计算每个状态之间的耗时，如果超过阈值则认为发生了卡顿。
 
+#### 8.3.1 监控原理
+
+主线程的 RunLoop 负责处理 UI 事件和界面更新。正常情况下，RunLoop 会在一个循环中快速处理事件并进入休眠状态。如果某个阶段耗时过长，说明主线程被阻塞，发生了卡顿。
+
+**关键监控点：**
+- `kCFRunLoopBeforeSources` → `kCFRunLoopBeforeWaiting`：处理 Source 的耗时
+- `kCFRunLoopAfterWaiting` → `kCFRunLoopBeforeWaiting`：处理唤醒后事件的耗时
+
+如果这两个阶段耗时超过阈值（通常为 50ms，约 3 帧），则认为发生了卡顿。
+
+#### 8.3.2 实现方式
+
+**方式一：基于信号量的超时检测**
+- 在主线程的 RunLoop 中添加 Observer，监听所有状态变化
+- 在 Observer 回调中记录当前状态，并通过信号量通知监控线程
+- 在子线程中使用信号量等待，设置超时时间为阈值（如 50ms）
+- 如果信号量等待超时，且当前状态为 `BeforeSources` 或 `AfterWaiting`，则认为发生卡顿
+- 记录主线程堆栈信息用于分析
+
+**方式二：精确计算状态间耗时**
+- 在主线程的 RunLoop 中添加 Observer，监听所有状态变化
+- 在 `BeforeSources` 或 `AfterWaiting` 时记录开始时间
+- 在 `BeforeWaiting` 时计算与开始时间的差值
+- 如果耗时超过阈值，则记录卡顿并获取堆栈信息
+
+#### 8.3.3 关键要点
+
+1. **监控时机**：主要监控 `BeforeSources` 和 `AfterWaiting` 到 `BeforeWaiting` 的耗时
+2. **阈值设置**：通常设置为 50ms（约 3 帧），可根据需求调整
+3. **性能影响**：Observer 回调应尽量轻量，避免在回调中执行耗时操作
+4. **堆栈获取**：建议采样或异步处理，避免频繁获取堆栈影响性能
+5. **使用场景**：建议仅在 发生卡顿的时候 获取堆栈信息，避免频繁获取堆栈影响性能。
+
 ### 8.4 自动释放池的释放时机
 
 RunLoop 在进入休眠前和退出时会释放自动释放池，这样可以及时释放临时对象。
