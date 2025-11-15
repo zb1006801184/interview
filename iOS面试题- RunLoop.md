@@ -149,6 +149,51 @@ dispatch_resume(timer);
 
 RunLoop 在进入休眠前和退出时会释放自动释放池，这样可以及时释放临时对象。
 
+#### 8.4.1 核心机制
+
+主线程的 RunLoop 在启动时会自动注册两个 Observer，用于管理 AutoreleasePool 的生命周期。这两个 Observer 通过监听 RunLoop 的状态变化，在合适的时机创建和释放 AutoreleasePool。
+
+#### 8.4.2 两个 Observer 的作用
+
+**Observer 1：监听 `kCFRunLoopEntry`**
+- **时机**：RunLoop 进入时
+- **操作**：创建并 push 一个新的 AutoreleasePool
+- **优先级**：最高（order = -2147483647），确保最先执行
+
+**Observer 2：监听 `kCFRunLoopBeforeWaiting` 和 `kCFRunLoopExit`**
+- **时机1**：RunLoop 即将进入休眠前（`kCFRunLoopBeforeWaiting`）
+  - **操作**：pop 当前的 AutoreleasePool（释放其中的对象），并 push 一个新的 AutoreleasePool
+- **时机2**：RunLoop 退出时（`kCFRunLoopExit`）
+  - **操作**：pop 当前的 AutoreleasePool（释放其中的对象）
+- **优先级**：最低（order = 2147483647），确保最后执行
+
+#### 8.4.3 完整流程
+
+1. **RunLoop 循环开始**：触发 `kCFRunLoopEntry`，创建新的 AutoreleasePool
+2. **处理事件**：在处理 Timer、Source0、Source1 等事件时，所有被标记为 `autorelease` 的对象会被添加到当前的 AutoreleasePool 中
+3. **即将休眠**：触发 `kCFRunLoopBeforeWaiting`，释放旧的 AutoreleasePool（pop），并创建新的 AutoreleasePool（push）
+4. **线程休眠**：等待被唤醒
+5. **被唤醒**：处理新的事件，重复上述过程
+6. **RunLoop 退出**：触发 `kCFRunLoopExit`，释放 AutoreleasePool（pop）
+
+#### 8.4.4 设计原因
+
+- **及时释放**：在每次事件循环结束时释放临时对象，避免内存累积
+- **自动管理**：主线程无需手动管理 AutoreleasePool，系统自动处理
+- **性能优化**：在休眠前统一释放，减少内存峰值，提高内存使用效率
+
+#### 8.4.5 子线程的情况
+
+子线程的 RunLoop 默认不会自动创建和管理 AutoreleasePool。如果子线程需要运行 RunLoop，需要手动使用 `@autoreleasepool` 来管理自动释放池的生命周期。
+
+#### 8.4.6 关键要点总结
+
+1. **主线程自动管理**：主线程的 RunLoop 自动管理 AutoreleasePool，子线程需要手动管理
+2. **释放时机**：RunLoop 进入休眠前（`BeforeWaiting`）和退出时（`Exit`）
+3. **循环创建**：每个 RunLoop 循环都会创建新的 AutoreleasePool，确保临时对象及时释放
+4. **Observer 机制**：通过 Observer 机制实现，优先级最高和最低，确保在正确时机执行
+5. **内存优化**：这种设计让主线程的事件处理过程中的临时对象能够及时释放，避免内存泄漏和内存峰值过高
+
 ## 9. RunLoop 的底层实现？
 
 RunLoop 的底层实现基于 **Mach** 内核的消息机制：
