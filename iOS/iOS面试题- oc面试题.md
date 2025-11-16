@@ -135,10 +135,10 @@ person.name = mutableStr;  // copy 修饰，会创建新的不可变副本
 **代码示例：**
 
 ```objc
-// atomic：线程安全但性能低
+// atomic：保证单个原子操作的安全但性能低（不等于线程安全）
 @property (atomic, strong) NSString *atomicName;
 
-// nonatomic：性能高但非线程安全
+// nonatomic：性能高（不保证原子性）
 @property (nonatomic, strong) NSString *nonatomicName;
 
 // atomic 的局限性
@@ -264,7 +264,7 @@ Objective-C 支持两种内存管理方式：
 
 - **`autorelease`**：
   - 将对象添加到**自动释放池**中
-  - 延迟释放对象，直到自动释放池被销毁
+  - 延迟释放对象，直到自动释放池 pop（销毁）时释放
   - 通常在方法返回需要释放的对象时使用
 
 - **`@autoreleasepool`**：
@@ -415,34 +415,60 @@ NSLog(@"weakPerson: %@", weakPerson);  // nil，自动置为 nil
 
 Block 有三种类型：
 
-1. **`_NSConcreteGlobalBlock`**：全局 Block
+1. **`_NSConcreteGlobalBlock`**（`__NSGlobalBlock__`）：全局 Block
    - 存储在全局区
    - 不捕获外部变量或只捕获静态变量
+   - ARC 和 MRC 模式下行为一致
 
-2. **`_NSConcreteStackBlock`**：栈 Block
+2. **`_NSConcreteStackBlock`**（`__NSStackBlock__`）：栈 Block
    - 存储在栈上
    - 捕获了外部变量
+   - **仅在 MRC 模式下**，捕获外部变量的 Block 默认在栈上
+   - **在 ARC 模式下**，捕获外部变量的 Block 会被自动复制到堆上
 
-3. **`_NSConcreteMallocBlock`**：堆 Block
+3. **`_NSConcreteMallocBlock`**（`__NSMallocBlock__`）：堆 Block
    - 存储在堆上
    - Block 被 copy 后变成堆 Block
+   - **在 ARC 模式下**，捕获外部变量的 Block 会自动变成堆 Block
+
+**ARC 与 MRC 的区别：**
+
+- **MRC 模式**：
+  - 捕获外部变量的 Block 默认在栈上（`__NSStackBlock__`）
+  - 需要手动调用 `copy` 方法将其复制到堆上，否则在作用域外可能失效
+  - 堆 Block 需要手动管理内存（`release`）
+
+- **ARC 模式**：
+  - 捕获外部变量的 Block 会被编译器自动复制到堆上（`__NSMallocBlock__`）
+  - 无需手动调用 `copy` 方法
+  - 内存由 ARC 自动管理
 
 **代码示例：**
 
 ```objc
 // 全局 Block（不捕获变量）
+// ARC 和 MRC 模式下都是 __NSGlobalBlock__
 void (^globalBlock)(void) = ^{
     NSLog(@"Global Block");
 };
 
-// 栈 Block（捕获变量）
+// 捕获外部变量的 Block
 int value = 10;
-void (^stackBlock)(void) = ^{
+void (^capturedBlock)(void) = ^{
     NSLog(@"Value: %d", value);  // 捕获外部变量
 };
 
-// 堆 Block（被 copy）
-void (^heapBlock)(void) = [stackBlock copy];
+// 在 ARC 模式下，capturedBlock 实际类型是 __NSMallocBlock__（堆 Block）
+// 在 MRC 模式下，capturedBlock 实际类型是 __NSStackBlock__（栈 Block）
+
+// 验证 Block 类型
+NSLog(@"Block class: %@", [capturedBlock class]);
+// ARC 输出：__NSMallocBlock__
+// MRC 输出：__NSStackBlock__
+
+// MRC 模式下需要手动 copy 到堆
+void (^heapBlock)(void) = [capturedBlock copy];  // MRC 模式下必须 copy
+// ARC 模式下，capturedBlock 已经是堆 Block，copy 操作是多余的但不会出错
 ```
 
 ---
@@ -623,7 +649,7 @@ NSOperationQueue *queue = [[NSOperationQueue alloc] init];
 2. **`NSLock`**：锁对象
 3. **GCD 串行队列**：串行访问
 4. **`dispatch_barrier_async`**：栅栏函数
-5. **`atomic` 属性**：原子操作
+5. **`atomic` 属性**：仅保证单个属性读写的原子性，**不能保证复合操作的线程安全**（如读-修改-写操作）
 
 **代码示例：**
 
@@ -674,6 +700,22 @@ NSOperationQueue *queue = [[NSOperationQueue alloc] init];
     dispatch_barrier_async(self.concurrentQueue, ^{
         // 写操作（独占）
     });
+}
+
+// 5. atomic 属性（局限性示例）
+@property (atomic, strong) NSString *atomicName;
+@property (atomic, assign) NSInteger atomicCount;
+
+// atomic 只能保证单个操作的原子性
+self.atomicName = @"A";  // ✅ 原子操作，线程安全
+
+// 但复合操作仍然不安全
+self.atomicName = [self.atomicName stringByAppendingString:@"B"];  // ❌ 非原子操作
+// 这是"读-修改-写"三个步骤，中间可能被其他线程打断
+
+// 对于复合操作，仍需要使用锁或其他同步机制
+@synchronized(self) {
+    self.atomicCount++;  // 需要额外同步
 }
 ```
 
