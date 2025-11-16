@@ -556,11 +556,12 @@ dispatch_async(dispatch_get_global_queue(0, 0), ^{
     }
 });
 
-// 解决方案
+// 解决方案：在循环内部创建自动释放池，避免内存峰值
 dispatch_async(dispatch_get_global_queue(0, 0), ^{
-    @autoreleasepool {
-        for (int i = 0; i < 1000; i++) {
+    for (int i = 0; i < 1000; i++) {
+        @autoreleasepool {
             NSString *str = [NSString stringWithFormat:@"%d", i];
+            // 每次迭代结束时立即释放，避免内存峰值
         }
     }
 });
